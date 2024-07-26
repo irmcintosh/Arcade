@@ -1,83 +1,91 @@
-# Military Corridor
+# GIS Arcade Script for Determining Most Common Obstacle Proximity Category
 
-This project utilizes Arcade scripting language within the ArcGIS environment to perform spatial analysis and update a field in a feature class. The script calculates a mid-coordinate point for a given feature, creates buffer zones, and intersects these buffers with another feature class to classify the feature based on the intersection.
+## Overview
+This Arcade script is designed to analyze spatial data from a FeatureSet and determine the most common proximity category of obstacles around a given segment path. The script performs buffer analysis at various distances and identifies which category (Company, Battalion, Brigade, or Division) is most frequently encountered.
 
-## Code Explanation
+## Functions and Logic
 
-### Script Breakdown
+### `mostCommonValue(arr)`
+This function takes an array as input and returns the most common value in the array.
 
-1. **Feature Set Initialization:**
-   ```javascript
-   var coo = FeatureSetByName($datastore, "COO");
-   ```
-   This line initializes a feature set named `coo` from the datastore, which is used for intersection operations later in the script.
+- **Parameters:**
+  - `arr`: Array of values to analyze.
+- **Logic:**
+  1. Create an empty dictionary `countDict` to store the count of each value.
+  2. Iterate through the array, incrementing the count for each value in the dictionary.
+  3. Determine the value with the highest count and return it.
 
-2. **Calculate Mid-Coordinate:**
-   ```javascript
-   var pathHalf = Count(Geometry($feature).paths[Count(Geometry($feature).paths)-1])/2;
+### Main Script Logic
 
-   var ArcPointX = Geometry($feature).paths[Count(Geometry($feature).paths)-1][Round(pathHalf)].x;
-   var ArcPointY = Geometry($feature).paths[Count(Geometry($feature).paths)-1][Round(pathHalf)].y;
-   var ArcPointJSON = { "x": ArcPointX, "y": ArcPointY, "spatialReference": { "wkid": 32614 }};
-   var Mpoint = Point(ArcPointJSON);
-   ```
-   These lines calculate the mid-point of the last path in the feature geometry and create a point geometry at that mid-point.
+1. **FeatureSet Retrieval:**
+   - Retrieve the `obstacle` FeatureSet from the datastore, focusing on the `gridcode` attribute.
+   - Filter the `obstacle` FeatureSet to exclude features with `gridcode` equal to 1 (`obstacleR`).
 
-3. **Buffer and Intersection Operations:**
-   ```javascript
-   var myArray = [500, 1500, 3000];
-   for (var i in myArray) {
-       var buff = Buffer(Mpoint, myArray[i], 'meters');
-       var intersect = First(Intersects(buff, coo));
-       if (IsEmpty(intersect)) {
-           continue;
-       } else {
-           if (myArray[i] == 500) {
-               return 'CO';
-               break;
-           }
-           if (myArray[i] == 1500) {
-               return 'BTN';
-               break;
-           }
-           if (myArray[i] == 3000) {
-               return 'BDE';
-               break;
-           }
-       }
-   }
-   ```
-   This part of the script creates buffers of 500, 1500, and 3000 meters around the mid-point and checks for intersections with the `coo` feature set. Based on the intersection distance, it returns a classification ('CO', 'BTN', or 'BDE').
+2. **Segment Path Extraction:**
+   - Extract the geometry of the current feature (`$feature`) and get its first path segment.
 
-### Field Calculation in ArcGIS
+3. **Buffer Analysis:**
+   - Define a dictionary `corridor` to map categories to specific codes.
+   - Initialize an empty array `arr` to store proximity categories.
+   - For each vertex in the segment path:
+     - Create buffers at distances of 500, 1500, 3000, and 6000 meters.
+     - Check for intersections between the buffer and the filtered obstacles (`obstacleR`).
+     - If an intersection is found, add the corresponding category (`Company`, `Battalion`, `Brigade`, or `Division`) to the array and break out of the loop for the current vertex.
 
-The script is then utilized within an ArcGIS Python script to calculate and update a field in a feature class:
+4. **Determine Most Common Category:**
+   - Use the `mostCommonValue` function to find the most common category in the array `arr`.
+   - Map the most common category to its corresponding code using the `corridor` dictionary.
 
-```python
-arcpy.management.CalculateField(
-    in_table="MC",
-    field="MC",
-    expression="""
-    // Arcade code here
-    """,
-    expression_type="ARCADE",
-    code_block="",
-    field_type="TEXT",
-    enforce_domains="NO_ENFORCE_DOMAINS"
-)
+5. **Return Result:**
+   - Return the code for the most common category, or `-1` if no common category is found (`unknown`).
+
+## Usage
+This script is intended to be used within the context of an ArcGIS application where the `$datastore` and `$feature` variables are predefined. The script can be adapted to various use cases where proximity analysis and category determination are required.
+
+## Example
+Here is an example of how the script might be used within an ArcGIS environment to determine the most common obstacle proximity category for a given segment path:
+
+```arcade
+var obstacle = FeatureSetByName($datastore, "obstacle", ['gridcode'], TRUE)
+var obstacleR = Filter(obstacle, 'gridcode <> 1')
+
+var segment = Geometry($feature)["paths"][0]
+var corridor = {'Company': 148, 'Battalion': 149, 'Brigade': 150, 'Division': 151, 'unknown': -1}
+var arr = []
+
+for (var vertice in segment) {
+    var segVertice = segment[vertice]
+    var bufferWidths = [500, 1500, 3000, 6000]
+
+    for (var width in bufferWidths) {
+        var buffF = Buffer(segVertice, bufferWidths[width], 'meters')
+        var result = Intersects(buffF, obstacleR)
+
+        if (Count(result) != 0) {
+            if (bufferWidths[width] == 500) {
+                Push(arr, 'Company')
+                break
+            }
+            if (bufferWidths[width] == 1500) {
+                Push(arr, 'Battalion')
+                break
+            }
+            if (bufferWidths[width] == 3000) {
+                Push(arr, 'Brigade')
+                break
+            }
+            if (bufferWidths[width] == 6000) {
+                Push(arr, 'Division')
+                break
+            }
+        }
+    }
+}
+
+var mostCommon = mostCommonValue(arr)
+var key = IIF(IsEmpty(mostCommon), 'unknown', mostCommon)
+return corridor[key]
 ```
-This ArcPy function call uses the Arcade script to update the `MC` field in the `MC` feature class based on the buffer intersection logic.
-
-### Usage
-
-To use this script within your ArcGIS environment:
-
-1. Ensure that the `COO` feature set is available in your datastore.
-2. Copy the Arcade script into the `expression` parameter of the `CalculateField` function.
-3. Run the script to classify features in the `MC` feature class based on the specified buffer intersections.
 
 ## Conclusion
-
-This Arcade script project demonstrates how to perform spatial analysis using buffer zones and intersections to classify features within ArcGIS. The script is embedded within an ArcPy `CalculateField` function to automate the classification process in a feature class.
-
-For further customization and enhancement, modify the buffer distances and classification logic as per your spatial analysis requirements.
+This Arcade script is a powerful tool for performing spatial analysis on GIS data, particularly for determining the proximity category of obstacles around a path segment. By utilizing buffer analysis and custom functions, the script efficiently identifies and returns the most common category, facilitating better decision-making in spatial data applications.
