@@ -45,7 +45,7 @@ This script is intended to be used within the context of an ArcGIS application w
 ## Example
 Here is an example of how the script might be used within an ArcGIS environment to determine the most common obstacle proximity category for a given segment path:
 
-```arcade
+```javascript
 var obstacle = FeatureSetByName($datastore, "obstacle", ['gridcode'], TRUE)
 var obstacleR = Filter(obstacle, 'gridcode <> 1')
 
