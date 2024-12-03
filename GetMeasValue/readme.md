@@ -67,7 +67,6 @@ return -999;
 - **`result`**: Stores the output of the `PointToCoordinate` function, which calculates the measure.
 
 ### Conversion Functions
-  ```
 - **Feet to Miles**:
   ```javascript
   var measureInMiles = Round(measureInFeet / 5280, 6);
