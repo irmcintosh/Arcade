@@ -8,7 +8,6 @@ This repository contains an ArcGIS Arcade script for calculating linear referenc
 - **Identify Nearest Route**: The script identifies the nearest route geometry to the input feature within a specified buffer distance.
 - **Measure Calculation**: Calculates the measure (M value) along the identified route.
 - **Unit Conversion**: Converts the measure:
-  - From meters to feet.
   - From feet to miles.
 - **Fallback Handling**: Returns `-999` if no route or measure can be calculated.
 
@@ -43,7 +42,7 @@ var result = PointToCoordinate(routeGeom, $feature);
 
 // Check if the calculation returned a valid measure
 if (!IsEmpty(result)) {
-    // Convert the measure (M value) from meters to feet
+    // Gets the measure value with current measure unit
     var measureInFeet = Round(result.coordinate.M, 6);
     
     // Convert the measure from feet to miles
@@ -68,9 +67,6 @@ return -999;
 - **`result`**: Stores the output of the `PointToCoordinate` function, which calculates the measure.
 
 ### Conversion Functions
-- **Meters to Feet**:
-  ```javascript
-  var measureInFeet = Round(result.coordinate.M, 6);
   ```
 - **Feet to Miles**:
   ```javascript
