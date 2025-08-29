@@ -30,20 +30,3 @@ A few important details when working with random date/time values in Arcade:
 
 ---js
 
-## Dynamic vs Fixed Behavior
-- **Dynamic (Pop-ups, Symbology, Dashboards)**  
-  Every evaluation generates a new random date. The value is not stored anywhere — it’s recomputed each time the expression runs.  
-
-- **Fixed (Field Calculations, Attribute Rules)**  
-  When used in a field calculation or attribute rule, the random date is written into the field and persists.  
-  - Field Calculation: one-time assignment per run.  
-  - Attribute Rule: auto-assigns at insert (or update) according to the rule.  
-
----
-
-## Time Zones
-- Arcade `Date` values are stored in **UTC**.  
-- ArcGIS clients (Pro, Online, Field Maps, Dashboards) typically auto-localize when displaying.  
-- If you want to explicitly localize in an expression (e.g. popup):  
-  ```arcade
-  ToLocal(randomDate)
