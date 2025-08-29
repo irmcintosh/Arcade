@@ -28,7 +28,7 @@ return randomDate;
 
 A few important details when working with random date/time values in Arcade:
 
----
+---js
 
 ## Dynamic vs Fixed Behavior
 - **Dynamic (Pop-ups, Symbology, Dashboards)**  
